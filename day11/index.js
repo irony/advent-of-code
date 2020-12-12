@@ -6,30 +6,35 @@ const floor = '.'
 
 const countLine = (line, char) => Array.from(line).reduce((lineCount, seat) => lineCount += seat === char ? 1 : 0, 0)
 const countAll = (char) => seats.reduce((totalCount, line) => totalCount + countLine(line, char), 0)
-const countOccupiedAdjecent = (x, y) => 
-  // top row
-  isOccupied(x-1, y-1) +
-  isOccupied(x,   y-1) + 
-  isOccupied(x+1, y-1) +
+const find = (x, y, angle, distance) => ({
+  x: Math.round(Math.cos(angle * Math.PI / 180) * distance + x),
+  y: Math.round(Math.sin(angle * Math.PI / 180) * distance + y)
+})
+const findAll = (x, y, angle, maxDistance) => range(maxDistance + 1)
+    .slice(1) // skip 0
+    .map(distance => find(x, y, angle, distance))
+    .filter(({x, y}) => valid(x, y))
 
-  // middle row
-  isOccupied(x - 1, y) + 
-  isOccupied(x + 1, y) + 
+const range = (length, steps = 1) => Array.from({length}).map((_, i) => i * steps)
+const valid = (x, y) => x>=0 && y>=0 && y<seats.length && x<seats[y].length
+const is = (x, y, check) => (seats[y][x] === check) ? 1 : 0
 
-  //bottom row
-  isOccupied(x-1, y+1) + 
-  isOccupied(x,   y+1) + 
-  isOccupied(x+1, y+1)
+const countOccupiedAdjecent = (x, y, maxDistance = 1) => range(8, 45)
+    .map(angle => {
+      const first = findAll(x,y, angle, maxDistance)
+      .find(({x, y}) => is(x, y, occupied) || is(x, y, free))
+      return first ? is(first.x, first.y, occupied) : 0
+    })
+    .reduce((total, count) => total + count, 0)
 
-const isOccupied = (x, y) => x>=0 && y>=0 && y<seats.length && x<seats[y].length && (seats[y][x] === occupied) ? 1 : 0
 
 let same
 while(!same) {
   const newState = seats.map((line, y) => Array.from(line).map((seat, x) => {
     if (seat === floor) return floor
-    const occupiedAdjecent = countOccupiedAdjecent(x, y) 
+    const occupiedAdjecent = countOccupiedAdjecent(x, y, 100)
     if (seat === free && occupiedAdjecent === 0) return occupied
-    if (seat === occupied && occupiedAdjecent >= 4) return free
+    if (seat === occupied && occupiedAdjecent >= 5) return free
     return seat
   }).join(''))
   same = JSON.stringify(newState) === JSON.stringify(seats)
